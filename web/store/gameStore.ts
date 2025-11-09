@@ -6,6 +6,7 @@ import { create } from 'zustand'
 import type { SudokuGrid, GridSize, Difficulty, Move } from '@/lib/sudoku/types'
 import { generatePuzzle } from '@/lib/sudoku/generator'
 import { isValidMove, cloneGrid } from '@/lib/sudoku/validator'
+import { detectStrategy, type Strategy, type StrategyResult } from '@/lib/sudoku/strategies'
 
 export interface GameState {
   // Puzzle data
@@ -34,6 +35,11 @@ export interface GameState {
   highlightedCells: Set<string>
   errorCells: Set<string>
 
+  // Teaching state
+  lastStrategy: StrategyResult | null
+  showFeedback: boolean
+  strategiesUsed: Map<Strategy, number>
+
   // Actions
   startNewGame: (size: GridSize, difficulty: Difficulty, seed?: number) => void
   selectCell: (row: number, col: number) => void
@@ -47,6 +53,7 @@ export interface GameState {
   clearPencilMarks: () => void
   useHint: () => void
   resetGame: () => void
+  dismissFeedback: () => void
 }
 
 const cellKey = (row: number, col: number): string => `${row},${col}`
@@ -71,6 +78,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   isPencilMode: false,
   highlightedCells: new Set(),
   errorCells: new Set(),
+  lastStrategy: null,
+  showFeedback: false,
+  strategiesUsed: new Map(),
 
   // Start a new game
   startNewGame: (size: GridSize, difficulty: Difficulty, seed?: number) => {
@@ -95,6 +105,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       isPencilMode: false,
       highlightedCells: new Set(),
       errorCells: new Set(),
+      lastStrategy: null,
+      showFeedback: false,
+      strategiesUsed: new Map(),
     })
   },
 
@@ -192,6 +205,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const previousValue = newGrid[row][col]
     newGrid[row][col] = value
 
+    // Detect strategy used
+    const strategy = detectStrategy(currentGrid, row, col, value)
+
+    // Update strategies used counter
+    const newStrategiesUsed = new Map(get().strategiesUsed)
+    const count = newStrategiesUsed.get(strategy.strategy) || 0
+    newStrategiesUsed.set(strategy.strategy, count + 1)
+
     // Add to history (remove any future history)
     const newMove: Move = {
       row,
@@ -212,6 +233,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       moveHistory: newHistory,
       historyIndex: newHistory.length - 1,
       pencilMarks: newPencilMarks,
+      lastStrategy: strategy,
+      showFeedback: strategy.confidence > 0.7, // Show feedback for confident detections
+      strategiesUsed: newStrategiesUsed,
     })
 
     // Check if puzzle is complete
@@ -426,7 +450,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       isPencilMode: false,
       highlightedCells: new Set(),
       errorCells: new Set(),
+      lastStrategy: null,
+      showFeedback: false,
+      strategiesUsed: new Map(),
     })
+  },
+
+  // Dismiss feedback
+  dismissFeedback: () => {
+    set({ showFeedback: false })
   },
 }))
 
