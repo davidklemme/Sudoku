@@ -1,97 +1,132 @@
-# Sudoku Teaching App
+# Sudoku Fun! 🎨
 
-An intelligent Sudoku application designed to teach logical thinking and problem-solving skills to players aged 6 and upwards.
+A beautiful, kid-friendly Sudoku app designed for learning and fun. Built with love for my 5-year-old (and for learning ML along the way!).
 
-## Overview
+## ✨ What Makes This Special
 
-This app combines puzzle generation, adaptive teaching, and machine learning to provide a personalized Sudoku learning experience. It analyzes player strategies in real-time and provides evolving, age-appropriate feedback.
+- **Kid-First Design**: Colorful, playful UI that appeals to children
+- **Rainbow Number Buttons**: Each number has its own color for easy recognition
+- **Thick, Readable Grid**: Clear 3x3 box boundaries (no squinting!)
+- **Three Sizes**: 4×4 (Tiny), 6×6 (Medium), 9×9 (Big)
+- **Fun Animations**: Bouncy, springy interactions that feel alive
+- **Works Without ML**: Fully playable right now
+- **ML-Ready**: Infrastructure in place for strategy detection experiments
 
-## Platforms
+## 🚀 Quick Start
 
-- **Web**: Deployed on Vercel (Next.js)
-- **iOS**: Native SwiftUI app
+```bash
+cd web
+npm install
+npm run dev
+```
 
-## Key Features
+Open http://localhost:3000 and start playing!
 
-- 🧩 **Multi-level Puzzles**: 4x4, 6x6, and 9x9 grids with difficulty levels from Beginner to Expert
-- 🎓 **Adaptive Teaching**: Personalized explanations based on player skill and game history
-- 🤖 **ML-Powered Analysis**: Small, efficient model detects strategies and provides intelligent feedback
-- 🎨 **Simple Animations**: Sophisticated yet subtle animations appropriate for all ages
-- ♿ **Accessible**: WCAG 2.1 AA compliant, screen reader support, keyboard navigation
-- 🌙 **Multiple Themes**: Dark mode, color-blind friendly, reduced motion support
-- 📊 **Progress Tracking**: Monitor skill development and strategy mastery
+## 🎮 How to Play
 
-## Documentation
+1. Click a cell to select it (it lights up pretty!)
+2. Click a colorful number button to fill it in
+3. Use ✏️ Pencil Mode to add small candidate numbers
+4. Made a mistake? Use Undo! ↶
+5. Stuck? Hit the 💡 Hint button
+6. Complete the puzzle and celebrate! 🎉
 
-- [**Full Specification**](./SPECIFICATION.md) - Complete project requirements and technical architecture
-- [**Todo List**](https://github.com/davidklemme/Sudoku/issues) - Development progress tracker
+## 🎯 Perfect For
 
-## Tech Stack
+- **Kids (5+)**: Large buttons, fun colors, encouraging feedback
+- **Parents**: Safe, educational, no ads, works offline
+- **ML Learners**: Real codebase to experiment with TensorFlow.js
+- **Developers**: Clean TypeScript, good test coverage, modern stack
 
-### Web Application
-- **Framework**: Next.js 14+ (React, TypeScript)
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion
-- **Hosting**: Vercel
-- **Database**: PostgreSQL (Vercel Postgres)
-- **Cache**: Redis (Upstash)
+## 📱 Deploy Your Own
 
-### iOS Application
-- **Framework**: SwiftUI
-- **Minimum iOS**: 16.0+
-- **ML**: Core ML
+See [DEPLOY.md](./DEPLOY.md) for step-by-step Vercel deployment (takes 5 minutes).
 
-### Machine Learning
-- **Training**: Python (TensorFlow/PyTorch)
-- **Web Deployment**: TensorFlow.js
-- **iOS Deployment**: Core ML
+**TL;DR**:
+```bash
+npm i -g vercel
+cd web
+vercel
+```
 
-## Development Phases
+## 🧪 For ML Experiments
 
-### Phase 1 (MVP)
-- 9x9 Sudoku generation (Easy, Medium, Hard)
-- Basic web app with animations
-- Manual hint system
-- Local storage for progress
+The app works perfectly without ML, but has full infrastructure ready:
 
-### Phase 2
-- 4x4 and 6x6 grids for younger players
-- ML model integration
-- Personalized feedback
-- User accounts and cloud sync
+- **Feature Extraction**: 106-dimensional feature vectors from game state
+- **Web Worker**: Async inference that never blocks gameplay
+- **Mock Mode**: Placeholder for testing UI before training real models
+- **Strategy Detection**: Rule-based fallback always works
 
-### Phase 3
-- Advanced teaching system
-- Strategy library and tutorials
-- iOS app launch
-- Enhanced analytics
+Want to train a real model? Check out the feature extraction in `web/lib/ml/features.ts`.
 
-### Phase 4
-- Multiplayer collaborative solving
-- Custom puzzle creator
-- Adaptive difficulty
-- Teacher dashboard for classroom use
+## 🏗️ Tech Stack
 
-## Development Principles
+- **Next.js 16** + React 19 + TypeScript
+- **Tailwind CSS 4** + Framer Motion (animations)
+- **Zustand** (state management)
+- **Jest** (93 tests, 95%+ coverage)
+- **Vercel** (deployment)
 
-1. **Child-First Design**: Prioritize young learners in every decision
-2. **Privacy by Default**: COPPA compliant, minimal data collection
-3. **Accessibility**: Usable by all, regardless of ability
-4. **Performance**: Fast on low-end devices
-5. **Joyful Interactions**: Learning should be fun
+## 📂 Project Structure
 
-## Getting Started
+```
+web/
+├── app/              # Next.js pages
+├── components/       # React components
+│   ├── game/        # Board, Cell, NumberPad, Controls
+│   └── teaching/    # FeedbackBadge, StrategyStats
+├── lib/
+│   ├── sudoku/      # Game logic (generator, solver, validator)
+│   └── ml/          # ML infrastructure (ready for experiments)
+└── tests/           # Unit & integration tests
+```
 
-(Instructions will be added as development progresses)
+## 🎨 Design Philosophy
 
-## License
+**Minimalist but Playful**
+- Soft gradient backgrounds (pink → purple → blue)
+- Rounded corners everywhere (friendly, not corporate)
+- Big, tactile buttons (easy for small fingers)
+- Emojis used tastefully (not overdone)
+- Smooth animations (spring physics, not linear)
 
-See [LICENSE](./LICENSE) file for details.
+**Kid-Tested Principles**
+- ✅ Instant feedback (no waiting)
+- ✅ Forgiving (undo anything)
+- ✅ Encouraging (celebrate wins, gentle on mistakes)
+- ✅ Clear visual hierarchy (board dominates, controls support)
+- ✅ No frustration (hints always available)
 
-## Contact
+## 📊 Game Stats
 
-For questions or feedback, please open an issue on GitHub.
+The app tracks:
+- ⏱️ Time (updates every second)
+- 💡 Hints used
+- ❌ Mistakes made
+- 📈 Strategies detected (when ML is enabled)
+
+## 🔮 Future Ideas
+
+- [ ] Confetti explosion on puzzle complete (more dramatic!)
+- [ ] Sound effects (optional, toggle-able)
+- [ ] Daily puzzle challenge
+- [ ] Train actual ML model with your gameplay data
+- [ ] Parent dashboard (track progress over time)
+- [ ] Custom difficulty (auto-adjust based on skill)
+- [ ] Share puzzles with friends
+
+## 🤝 Contributing
+
+This is a personal learning project, but ideas welcome! Open an issue if you find bugs or have suggestions.
+
+## 📝 License
+
+MIT - Use it, learn from it, build your own!
 
 ---
 
-*Last Updated: 2025-11-09*
+**Built with ❤️ for family fun and ML learning**
+
+*If your 5-year-old solves a 9×9 Expert puzzle, please open an issue to share the victory!* 🏆
+

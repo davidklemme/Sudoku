@@ -34,98 +34,62 @@ export default function Cell({
     }
   }
 
-  const getCellBorderClasses = () => {
-    const borders = []
+  const boxRows = gridSize === 4 ? 2 : gridSize === 6 ? 2 : 3
+  const boxCols = gridSize === 6 ? 3 : boxRows
 
-    // Box borders (thicker)
-    const boxRows = gridSize === 4 ? 2 : gridSize === 6 ? 2 : 3
-    const boxCols = gridSize === 6 ? 3 : boxRows
-
-    if (row % boxRows === 0 && row !== 0) {
-      borders.push('border-t-2')
-    }
-    if (col % boxCols === 0 && col !== 0) {
-      borders.push('border-l-2')
-    }
-
-    // Grid borders (normal)
-    if (row === 0) {
-      borders.push('border-t-2')
-    }
-    if (col === 0) {
-      borders.push('border-l-2')
-    }
-    if (row === gridSize - 1) {
-      borders.push('border-b-2')
-    }
-    if (col === gridSize - 1) {
-      borders.push('border-r-2')
-    }
-
-    // Regular borders
-    if (!borders.includes('border-t-2')) {
-      borders.push('border-t')
-    }
-    if (!borders.includes('border-l-2')) {
-      borders.push('border-l')
-    }
-    if (!borders.includes('border-b-2')) {
-      borders.push('border-b')
-    }
-    if (!borders.includes('border-r-2')) {
-      borders.push('border-r')
-    }
-
-    return borders.join(' ')
-  }
-
-  const getCellBackgroundClass = () => {
-    if (isSelected) {
-      return 'bg-blue-200 dark:bg-blue-900'
-    }
-    if (isHighlighted) {
-      return 'bg-blue-50 dark:bg-blue-950'
-    }
-    return 'bg-white dark:bg-gray-800'
-  }
-
-  const getTextColorClass = () => {
-    if (isInitial) {
-      return 'text-gray-900 dark:text-gray-100 font-bold'
-    }
-    return 'text-blue-600 dark:text-blue-400'
-  }
+  const isTopBoxBoundary = row % boxRows === 0
+  const isLeftBoxBoundary = col % boxCols === 0
+  const isBottomBoxBoundary = row === gridSize - 1 || (row + 1) % boxRows === 0
+  const isRightBoxBoundary = col === gridSize - 1 || (col + 1) % boxCols === 0
 
   return (
     <motion.button
+      style={{
+        borderTop: isTopBoxBoundary ? '3px solid #000' : '1px solid #999',
+        borderLeft: isLeftBoxBoundary ? '3px solid #000' : '1px solid #999',
+        borderBottom: isBottomBoxBoundary ? '3px solid #000' : '1px solid #999',
+        borderRight: isRightBoxBoundary ? '3px solid #000' : '1px solid #999',
+        backgroundColor: isSelected ? '#93c5fd' : isHighlighted ? '#dbeafe' : '#ffffff',
+      }}
       className={`
         aspect-square flex items-center justify-center
-        ${getCellBorderClasses()}
-        ${getCellBackgroundClass()}
-        ${getTextColorClass()}
-        border-gray-400 dark:border-gray-600
         transition-colors duration-150
-        ${!isInitial ? 'hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer' : 'cursor-default'}
+        ${!isInitial ? 'hover:bg-blue-100 cursor-pointer' : 'cursor-default'}
         relative
       `}
       onClick={handleClick}
-      animate={isError ? { x: [-3, 3, -3, 3, 0] } : {}}
+      animate={isError ? { x: [-4, 4, -4, 4, 0] } : {}}
       transition={{ duration: 0.3 }}
-      whileTap={!isInitial ? { scale: 0.95 } : {}}
+      whileTap={!isInitial ? { scale: 0.92 } : {}}
     >
       {value ? (
         <motion.span
-          className={`text-lg sm:text-xl md:text-2xl ${gridSize === 9 ? 'text-base sm:text-lg md:text-xl' : ''}`}
-          initial={{ scale: 0.8, opacity: 0 }}
+          style={{
+            fontSize: gridSize === 4 ? '48px' : gridSize === 6 ? '36px' : '30px',
+            fontWeight: isInitial ? 900 : 400,
+            color: isInitial ? '#111827' : '#9333ea',
+          }}
+          initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.2 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         >
           {value}
         </motion.span>
       ) : pencilMarks && pencilMarks.size > 0 ? (
-        <div className={`grid ${gridSize === 4 ? 'grid-cols-2' : gridSize === 6 ? 'grid-cols-3' : 'grid-cols-3'} gap-0 text-xs text-gray-500 dark:text-gray-400 absolute inset-0 p-1`}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: gridSize === 4 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+            gap: '2px',
+            fontSize: '10px',
+            color: '#6b7280',
+            position: 'absolute',
+            inset: 0,
+            padding: '4px',
+          }}
+        >
           {Array.from({ length: gridSize }, (_, i) => i + 1).map((num) => (
-            <div key={num} className="flex items-center justify-center">
+            <div key={num} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {pencilMarks.has(num) ? num : ''}
             </div>
           ))}
@@ -134,10 +98,10 @@ export default function Cell({
 
       {isError && (
         <motion.div
-          className="absolute inset-0 bg-red-200 dark:bg-red-900 opacity-50"
-          initial={{ opacity: 0.5 }}
+          className="absolute inset-0 bg-red-400 dark:bg-red-700 rounded"
+          initial={{ opacity: 0.6 }}
           animate={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.4 }}
         />
       )}
     </motion.button>

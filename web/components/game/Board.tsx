@@ -25,13 +25,15 @@ export default function Board() {
   const cellKey = (row: number, col: number): string => `${row},${col}`
 
   return (
-    <div className="flex items-center justify-center p-4">
+    <div className="flex items-center justify-center w-full h-full">
       <div
         className={`
           grid gap-0
-          ${gridSize === 4 ? 'w-64 h-64' : ''}
-          ${gridSize === 6 ? 'w-80 h-80' : ''}
-          ${gridSize === 9 ? 'w-96 h-96 max-w-full' : ''}
+          w-full
+          h-full
+          max-w-[800px]
+          max-h-[800px]
+          aspect-square
         `}
         style={{
           gridTemplateColumns: `repeat(${gridSize}, 1fr)`,

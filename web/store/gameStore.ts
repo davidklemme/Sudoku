@@ -37,6 +37,17 @@ export interface GameState {
   highlightedCells: Set<string>
   errorCells: Set<string>
 
+  // Highlight preferences
+  showRowHighlight: boolean
+  showColumnHighlight: boolean
+  showBoxHighlight: boolean
+
+  // Error feedback
+  showErrorFeedback: boolean
+
+  // Auto-clean pencil marks
+  autoCleanPencilMarks: boolean
+
   // Teaching state
   lastStrategy: StrategyResult | null
   showFeedback: boolean
@@ -56,6 +67,12 @@ export interface GameState {
   useHint: () => void
   resetGame: () => void
   dismissFeedback: () => void
+  toggleRowHighlight: () => void
+  toggleColumnHighlight: () => void
+  toggleBoxHighlight: () => void
+  applyHighlightPreset: (difficulty: Difficulty) => void
+  toggleErrorFeedback: () => void
+  toggleAutoCleanPencilMarks: () => void
 }
 
 const cellKey = (row: number, col: number): string => `${row},${col}`
@@ -80,6 +97,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   isPencilMode: false,
   highlightedCells: new Set(),
   errorCells: new Set(),
+  showRowHighlight: true,
+  showColumnHighlight: false,
+  showBoxHighlight: false,
+  showErrorFeedback: true,
+  autoCleanPencilMarks: true,
   lastStrategy: null,
   showFeedback: false,
   strategiesUsed: new Map(),
@@ -111,45 +133,50 @@ export const useGameStore = create<GameState>((set, get) => ({
       showFeedback: false,
       strategiesUsed: new Map(),
     })
+
+    // Apply highlight preset for the difficulty
+    get().applyHighlightPreset(difficulty)
   },
 
   // Select a cell
   selectCell: (row: number, col: number) => {
-    const { currentGrid, gridSize, initialGrid } = get()
+    const { currentGrid, gridSize, showRowHighlight, showColumnHighlight, showBoxHighlight } = get()
 
     if (!currentGrid || row < 0 || row >= gridSize || col < 0 || col >= gridSize) {
       return
     }
 
-    // Can't select initial cells
-    if (initialGrid && initialGrid[row][col] !== null) {
-      return
-    }
-
+    // Allow selecting any cell (including initial cells for navigation)
     set({ selectedCell: { row, col } })
 
-    // Update highlighted cells (same row, col, box)
+    // Update highlighted cells based on preferences
     const highlighted = new Set<string>()
 
-    // Same row
-    for (let c = 0; c < gridSize; c++) {
-      highlighted.add(cellKey(row, c))
+    // Same row (if enabled)
+    if (showRowHighlight) {
+      for (let c = 0; c < gridSize; c++) {
+        highlighted.add(cellKey(row, c))
+      }
     }
 
-    // Same column
-    for (let r = 0; r < gridSize; r++) {
-      highlighted.add(cellKey(r, col))
+    // Same column (if enabled)
+    if (showColumnHighlight) {
+      for (let r = 0; r < gridSize; r++) {
+        highlighted.add(cellKey(r, col))
+      }
     }
 
-    // Same box
-    const boxSize = gridSize === 4 ? 2 : gridSize === 6 ? 2 : 3
-    const boxColSize = gridSize === 6 ? 3 : boxSize
-    const boxRow = Math.floor(row / boxSize) * boxSize
-    const boxCol = Math.floor(col / boxColSize) * boxColSize
+    // Same box (if enabled)
+    if (showBoxHighlight) {
+      const boxSize = gridSize === 4 ? 2 : gridSize === 6 ? 2 : 3
+      const boxColSize = gridSize === 6 ? 3 : boxSize
+      const boxRow = Math.floor(row / boxSize) * boxSize
+      const boxCol = Math.floor(col / boxColSize) * boxColSize
 
-    for (let r = boxRow; r < boxRow + boxSize; r++) {
-      for (let c = boxCol; c < boxCol + boxColSize; c++) {
-        highlighted.add(cellKey(r, c))
+      for (let r = boxRow; r < boxRow + boxSize; r++) {
+        for (let c = boxCol; c < boxCol + boxColSize; c++) {
+          highlighted.add(cellKey(r, c))
+        }
       }
     }
 
@@ -188,15 +215,17 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // Validate move
     if (!isValidMove(currentGrid, row, col, value)) {
-      // Invalid move - show error
-      const errorCells = new Set<string>()
-      errorCells.add(cellKey(row, col))
-      set({ errorCells })
+      // Invalid move - show error if feedback is enabled
+      if (get().showErrorFeedback) {
+        const errorCells = new Set<string>()
+        errorCells.add(cellKey(row, col))
+        set({ errorCells })
 
-      // Clear error after animation
-      setTimeout(() => {
-        set({ errorCells: new Set() })
-      }, 300)
+        // Clear error after animation
+        setTimeout(() => {
+          set({ errorCells: new Set() })
+        }, 300)
+      }
 
       set((state) => ({ mistakes: state.mistakes + 1 }))
       return
@@ -222,6 +251,51 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Clear pencil marks for this cell
     const newPencilMarks = new Map(get().pencilMarks)
     newPencilMarks.delete(cellKey(row, col))
+
+    // Auto-clean pencil marks from related cells if enabled
+    if (get().autoCleanPencilMarks) {
+      const boxSize = gridSize === 4 ? 2 : gridSize === 6 ? 2 : 3
+      const boxColSize = gridSize === 6 ? 3 : boxSize
+      const boxRow = Math.floor(row / boxSize) * boxSize
+      const boxCol = Math.floor(col / boxColSize) * boxColSize
+
+      // Clean from same row, column, and box
+      for (let i = 0; i < gridSize; i++) {
+        // Clean from same row
+        const rowKey = cellKey(row, i)
+        const rowMarks = newPencilMarks.get(rowKey)
+        if (rowMarks && rowMarks.has(value)) {
+          rowMarks.delete(value)
+          if (rowMarks.size === 0) {
+            newPencilMarks.delete(rowKey)
+          }
+        }
+
+        // Clean from same column
+        const colKey = cellKey(i, col)
+        const colMarks = newPencilMarks.get(colKey)
+        if (colMarks && colMarks.has(value)) {
+          colMarks.delete(value)
+          if (colMarks.size === 0) {
+            newPencilMarks.delete(colKey)
+          }
+        }
+      }
+
+      // Clean from same box
+      for (let r = boxRow; r < boxRow + boxSize; r++) {
+        for (let c = boxCol; c < boxCol + boxColSize; c++) {
+          const boxKey = cellKey(r, c)
+          const boxMarks = newPencilMarks.get(boxKey)
+          if (boxMarks && boxMarks.has(value)) {
+            boxMarks.delete(value)
+            if (boxMarks.size === 0) {
+              newPencilMarks.delete(boxKey)
+            }
+          }
+        }
+      }
+    }
 
     // Update state immediately for responsive UI
     set({
@@ -514,6 +588,70 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Dismiss feedback
   dismissFeedback: () => {
     set({ showFeedback: false })
+  },
+
+  // Toggle row highlighting
+  toggleRowHighlight: () => {
+    set((state) => ({ showRowHighlight: !state.showRowHighlight }))
+    // Re-highlight selected cell with new preferences
+    const { selectedCell } = get()
+    if (selectedCell) {
+      get().selectCell(selectedCell.row, selectedCell.col)
+    }
+  },
+
+  // Toggle column highlighting
+  toggleColumnHighlight: () => {
+    set((state) => ({ showColumnHighlight: !state.showColumnHighlight }))
+    // Re-highlight selected cell with new preferences
+    const { selectedCell } = get()
+    if (selectedCell) {
+      get().selectCell(selectedCell.row, selectedCell.col)
+    }
+  },
+
+  // Toggle box highlighting
+  toggleBoxHighlight: () => {
+    set((state) => ({ showBoxHighlight: !state.showBoxHighlight }))
+    // Re-highlight selected cell with new preferences
+    const { selectedCell } = get()
+    if (selectedCell) {
+      get().selectCell(selectedCell.row, selectedCell.col)
+    }
+  },
+
+  // Apply highlight preset based on difficulty
+  applyHighlightPreset: (difficulty: Difficulty) => {
+    switch (difficulty) {
+      case 'beginner':
+        set({ showRowHighlight: true, showColumnHighlight: true, showBoxHighlight: true })
+        break
+      case 'easy':
+        set({ showRowHighlight: true, showColumnHighlight: true, showBoxHighlight: false })
+        break
+      case 'medium':
+        set({ showRowHighlight: true, showColumnHighlight: false, showBoxHighlight: false })
+        break
+      case 'hard':
+      case 'expert':
+        set({ showRowHighlight: false, showColumnHighlight: false, showBoxHighlight: false })
+        break
+    }
+    // Re-highlight selected cell with new preferences
+    const { selectedCell } = get()
+    if (selectedCell) {
+      get().selectCell(selectedCell.row, selectedCell.col)
+    }
+  },
+
+  // Toggle error feedback
+  toggleErrorFeedback: () => {
+    set((state) => ({ showErrorFeedback: !state.showErrorFeedback }))
+  },
+
+  // Toggle auto-clean pencil marks
+  toggleAutoCleanPencilMarks: () => {
+    set((state) => ({ autoCleanPencilMarks: !state.autoCleanPencilMarks }))
   },
 }))
 
