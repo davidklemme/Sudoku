@@ -7,6 +7,8 @@ import type { SudokuGrid, GridSize, Difficulty, Move } from '@/lib/sudoku/types'
 import { generatePuzzle } from '@/lib/sudoku/generator'
 import { isValidMove, cloneGrid } from '@/lib/sudoku/validator'
 import { detectStrategy, type Strategy, type StrategyResult } from '@/lib/sudoku/strategies'
+import { extractFeatures } from '@/lib/ml/features'
+import { mockPredict } from '@/lib/ml/mock'
 
 export interface GameState {
   // Puzzle data
@@ -205,20 +207,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const previousValue = newGrid[row][col]
     newGrid[row][col] = value
 
-    // Detect strategy used
-    const strategy = detectStrategy(currentGrid, row, col, value)
-
-    // Update strategies used counter
-    const newStrategiesUsed = new Map(get().strategiesUsed)
-    const count = newStrategiesUsed.get(strategy.strategy) || 0
-    newStrategiesUsed.set(strategy.strategy, count + 1)
-
     // Add to history (remove any future history)
+    const moveTimestamp = Date.now()
     const newMove: Move = {
       row,
       col,
       value,
-      timestamp: Date.now(),
+      timestamp: moveTimestamp,
     }
 
     const newHistory = moveHistory.slice(0, historyIndex + 1)
@@ -228,14 +223,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newPencilMarks = new Map(get().pencilMarks)
     newPencilMarks.delete(cellKey(row, col))
 
+    // Update state immediately for responsive UI
     set({
       currentGrid: newGrid,
       moveHistory: newHistory,
       historyIndex: newHistory.length - 1,
       pencilMarks: newPencilMarks,
-      lastStrategy: strategy,
-      showFeedback: strategy.confidence > 0.7, // Show feedback for confident detections
-      strategiesUsed: newStrategiesUsed,
     })
 
     // Check if puzzle is complete
@@ -246,6 +239,68 @@ export const useGameStore = create<GameState>((set, get) => ({
         endTime: Date.now(),
       })
     }
+
+    // Run ML prediction asynchronously in the background
+    const predictStrategy = async () => {
+      try {
+        // Calculate time since last move
+        const timeSinceLastMove =
+          moveHistory.length > 0 ? moveTimestamp - moveHistory[moveHistory.length - 1].timestamp : 0
+
+        // Extract recent moves (last 5)
+        const recentMoves = moveHistory.slice(-5).map((m) => ({ row: m.row, col: m.col }))
+
+        // Get previous strategies (last 5)
+        const previousStrategies = Array.from(get().strategiesUsed.keys()).slice(-5)
+
+        // Extract features for ML model
+        const features = extractFeatures(currentGrid, row, col, value, {
+          timeSinceLastMove,
+          recentMoves,
+          errorCount: get().mistakes,
+          previousStrategies,
+        })
+
+        // Run async ML prediction
+        const prediction = await mockPredict(features)
+
+        // Convert ML prediction to StrategyResult format
+        const strategy: StrategyResult = {
+          strategy: prediction.strategy as Strategy,
+          confidence: prediction.confidence,
+          explanation: `Strategy detected: ${prediction.strategy} (${Math.round(prediction.confidence * 100)}% confidence)`,
+        }
+
+        // Update strategies used counter
+        const currentStrategiesUsed = get().strategiesUsed
+        const newStrategiesUsed = new Map(currentStrategiesUsed)
+        const count = newStrategiesUsed.get(strategy.strategy) || 0
+        newStrategiesUsed.set(strategy.strategy, count + 1)
+
+        // Update state with ML results
+        set({
+          lastStrategy: strategy,
+          showFeedback: strategy.confidence > 0.7, // Show feedback for confident detections
+          strategiesUsed: newStrategiesUsed,
+        })
+      } catch (error) {
+        console.error('ML prediction failed:', error)
+        // Fallback to rule-based detection on error
+        const strategy = detectStrategy(currentGrid, row, col, value)
+        const newStrategiesUsed = new Map(get().strategiesUsed)
+        const count = newStrategiesUsed.get(strategy.strategy) || 0
+        newStrategiesUsed.set(strategy.strategy, count + 1)
+
+        set({
+          lastStrategy: strategy,
+          showFeedback: strategy.confidence > 0.7,
+          strategiesUsed: newStrategiesUsed,
+        })
+      }
+    }
+
+    // Fire and forget - don't block UI
+    predictStrategy()
   },
 
   // Clear the selected cell
