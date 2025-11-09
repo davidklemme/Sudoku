@@ -96,7 +96,8 @@ sudoku-web/
 │   ├── ml/
 │   │   ├── model.ts              # TF.js model wrapper
 │   │   ├── inference.ts          # Prediction logic
-│   │   └── preprocessor.ts       # Input preprocessing
+│   │   ├── preprocessor.ts       # Input preprocessing
+│   │   └── ml.worker.ts          # Web Worker for background ML
 │   ├── teaching/
 │   │   ├── explainer.ts          # Explanation generation
 │   │   ├── hints.ts              # Hint system
@@ -165,9 +166,10 @@ SudokuTeacher/
 
 ## Data Flow
 
-### Game Play Flow
+### Game Play Flow (Async ML Analysis)
 
 ```
+MAIN THREAD (UI - Never Blocks):
 1. User starts game
    ↓
 2. Request puzzle from API/cache
@@ -176,47 +178,105 @@ SudokuTeacher/
    ↓
 4. User makes move
    ↓
-5. Validate move locally
+5. Validate move locally (instant)
    ↓
-6. Send move to ML model (client-side)
+6. Update game state (instant)
    ↓
-7. Get strategy classification
+7. Render move on board (instant)
    ↓
-8. Update game state
+8. User continues playing (NO WAITING)
    ↓
-9. Track analytics (async)
-   ↓
-10. Check if teaching moment
+9. Repeat 4-8 until puzzle complete
+
+BACKGROUND THREAD (ML Analysis):
+4a. User makes move (triggers background job)
     ↓
-11. Display feedback/hint if needed
+4b. Extract features in Web Worker (browser) or async task (iOS)
     ↓
-12. Repeat 4-11 until puzzle complete
+4c. Run ML inference (~30-50ms)
+    ↓
+4d. Get strategy classification + confidence
+    ↓
+4e. Post result back to main thread
+    ↓
+4f. Main thread checks if teaching moment needed
+    ↓
+4g. IF teaching moment: Show subtle badge/notification
+    ↓
+4h. Player can click badge when ready (or ignore)
+    ↓
+4i. Track analytics (async to server)
 ```
 
-### ML Inference Flow
+**Key Points**:
+- UI thread never waits for ML analysis
+- Player can make next move immediately
+- Feedback appears progressively as analysis completes
+- All ML runs client-side (browser or device)
+
+### ML Inference Flow (Web Worker / Async)
 
 ```
-Player Move
-    ↓
-Extract Features:
-  - Board state (81 values)
-  - Cell position (2 values)
-  - Number placed (1 value)
-  - Available candidates (9 values)
-  - Time taken (1 value)
-  - Move sequence (last 5 moves)
-    ↓
-Preprocess Features
-    ↓
-Run Model Inference (TF.js/Core ML)
-    ↓
-Get Predictions:
-  - Strategy class (e.g., "Hidden Single")
-  - Confidence score
-  - Difficulty appropriateness
-    ↓
-Return to Game Logic
+┌─────────────────────────────────────────────────────────────┐
+│                      MAIN THREAD (UI)                        │
+└─────────────────────────────────────────────────────────────┘
+                           │
+            Player makes move (row, col, value)
+                           │
+                           ├──> Update UI immediately
+                           │
+                           └──> Post to Web Worker
+                                       │
+┌─────────────────────────────────────▼────────────────────────┐
+│                    WEB WORKER (Background)                    │
+├───────────────────────────────────────────────────────────────┤
+│  1. Receive move data                                         │
+│     ↓                                                         │
+│  2. Extract Features:                                         │
+│     - Board state (81 values)                                 │
+│     - Cell position (2 values)                                │
+│     - Number placed (1 value)                                 │
+│     - Available candidates (9 values)                         │
+│     - Time taken (1 value)                                    │
+│     - Move sequence (last 5 moves)                            │
+│     ↓                                                         │
+│  3. Preprocess Features (normalize, encode)                   │
+│     ↓                                                         │
+│  4. Run TensorFlow.js Model Inference                         │
+│     ↓                                                         │
+│  5. Get Predictions:                                          │
+│     - Strategy class probabilities [12 values]                │
+│     - Confidence score (0-1)                                  │
+│     - Teaching moment flag (boolean)                          │
+│     ↓                                                         │
+│  6. Post result back to main thread                           │
+└───────────────────────────────────▲───────────────────────────┘
+                                    │
+┌───────────────────────────────────┴───────────────────────────┐
+│                      MAIN THREAD (UI)                          │
+├───────────────────────────────────────────────────────────────┤
+│  7. Receive ML results                                         │
+│     ↓                                                         │
+│  8. Check confidence & teaching moment flag                    │
+│     ↓                                                         │
+│  9. IF teaching moment:                                        │
+│     - Show badge/notification (subtle, non-blocking)           │
+│     - Store feedback for when player clicks                    │
+│     ↓                                                         │
+│ 10. IF player clicks badge:                                   │
+│     - Display explanation modal/panel                          │
+│     - Show visual highlights on board                          │
+│     ↓                                                         │
+│ 11. Track analytics (async POST to API)                       │
+└───────────────────────────────────────────────────────────────┘
 ```
+
+**Performance Targets**:
+- Feature extraction: <5ms
+- ML inference: <50ms (p95)
+- Total background time: <60ms
+- Main thread never blocked
+- 60 FPS maintained during inference
 
 ## Database Schema
 

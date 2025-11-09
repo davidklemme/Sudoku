@@ -86,6 +86,12 @@ An intelligent Sudoku application designed to teach logical thinking and problem
 - Identify teaching opportunities
 - Detect struggling patterns requiring intervention
 
+**Execution Model**:
+- **Client-Side Only**: Runs entirely in browser (TensorFlow.js) or on device (Core ML)
+- **Async/Background**: Analysis happens without blocking gameplay
+- **Non-Intrusive**: Player continues playing while feedback is prepared
+- **Progressive Disclosure**: Insights appear when ready (e.g., subtle notification badge)
+
 **Model Specifications**:
 - **Type**: Small, efficient neural network (deployable on client-side)
 - **Input Features**:
@@ -113,6 +119,11 @@ An intelligent Sudoku application designed to teach logical thinking and problem
 - Target: < 5MB for web deployment
 - Architecture: Lightweight (MobileNet-style or transformer-lite)
 - Framework: TensorFlow.js (web) / Core ML (iOS)
+
+**Performance Targets**:
+- Inference time: < 50ms per move (async, non-blocking)
+- Accuracy: > 85% for common strategies
+- Runs smoothly on 3+ year old devices
 
 ### 5. Feedback System
 
@@ -262,6 +273,160 @@ An intelligent Sudoku application designed to teach logical thinking and problem
 - Non-intrusive tip overlays
 - Optional tutorial mode for first-time users
 - "Teach me" mode vs. "Practice" mode
+
+---
+
+## ML Model Testing Strategy
+
+### Test Stories for Model Validation
+
+To ensure the ML model accurately detects strategies and provides appropriate feedback, we'll use the following test stories:
+
+#### Story 1: Naked Single Detection (Beginner)
+**Scenario**: Player is working on an easy 9x9 puzzle. Cell (4,5) has only one possible candidate: 7.
+**Expected Behavior**:
+- Player places 7 in cell (4,5)
+- Model classifies as "Single Candidate" (confidence > 90%)
+- Feedback: "Great! You found the only number that could go there."
+
+**Test Variations**:
+- 4x4 grid with single candidate
+- 6x6 grid with single candidate
+- Multiple consecutive single candidates
+
+#### Story 2: Hidden Single Detection (Intermediate)
+**Scenario**: In row 3, the number 8 can only go in cell (3,6) due to constraints from other rows/columns.
+**Expected Behavior**:
+- Player places 8 in cell (3,6)
+- Model classifies as "Hidden Single" (confidence > 80%)
+- Feedback: "Nice work! You found where 8 had to go in this row."
+
+**Test Variations**:
+- Hidden single in column
+- Hidden single in box
+- Multiple hidden singles in different regions
+
+#### Story 3: Naked Pair Strategy (Advanced)
+**Scenario**: Cells (2,3) and (2,7) both have only candidates {4,9}. This eliminates 4 and 9 from other cells in row 2.
+**Expected Behavior**:
+- Player eliminates 4 or 9 from another cell in row 2
+- Model classifies as "Naked Pair" (confidence > 75%)
+- Feedback: "Excellent! You used a Naked Pair to eliminate possibilities."
+
+**Test Variations**:
+- Naked pair in column
+- Naked pair in box
+- Naked triple detection
+
+#### Story 4: Guessing vs. Logical Deduction
+**Scenario**: Player places a number in a cell that has multiple valid candidates without using clear logic.
+**Expected Behavior**:
+- Model detects low confidence in strategy classification
+- Flags as "Guessing" or "Uncertain"
+- Feedback: "Are you sure? Try looking for cells with fewer options first."
+
+**Test Variations**:
+- Early guess (board <30% complete)
+- Late guess (board >70% complete)
+- Guess that happens to be correct vs. incorrect
+
+#### Story 5: Progressive Learning Detection
+**Scenario**: Player completes 10 puzzles over 5 days. Initially uses only basic strategies, gradually incorporates hidden singles.
+**Expected Behavior**:
+- Model tracks strategy usage over time
+- Detects increased use of "Hidden Single"
+- Adaptive feedback reduces scaffolding for mastered strategies
+- Suggests next strategy to learn ("Ready to try Naked Pairs?")
+
+**Test Metrics**:
+- Strategy diversity score increases
+- Average difficulty level progresses
+- Time per puzzle decreases for same difficulty
+
+#### Story 6: Age-Appropriate Feedback (6-year-old)
+**Scenario**: Young child working on 4x4 puzzle, places correct number using elimination.
+**Expected Behavior**:
+- Model detects "Elimination" strategy
+- Feedback uses simple language: "You did it! That was the only number left."
+- Visual feedback: Animated checkmark, gentle glow
+
+**Test Variations**:
+- Different age groups (6-8, 9-12, 13+)
+- Complexity of language adjusts
+- Visual vs. text emphasis
+
+#### Story 7: Struggling Player Detection
+**Scenario**: Player makes 3 incorrect moves in a row, time between moves increases.
+**Expected Behavior**:
+- Model detects distress pattern
+- Offers contextual hint without revealing answer
+- Suggestion: "Would you like a hint about this row?"
+
+**Test Variations**:
+- Multiple errors in same region
+- Long pause (>60 seconds) on single cell
+- Repeated undo actions
+
+#### Story 8: Expert Player Recognition
+**Scenario**: Player consistently uses advanced strategies (X-Wing, Y-Wing) and completes puzzles quickly.
+**Expected Behavior**:
+- Model detects high proficiency
+- Reduces teaching interventions
+- Unlocks "Expert" difficulty
+- Feedback: Minimal, celebration-focused
+
+**Test Metrics**:
+- Strategy classification accuracy for advanced patterns
+- Appropriate difficulty suggestions
+- Low false-positive rate on teaching moments
+
+#### Story 9: Async Feedback Timing
+**Scenario**: Player makes move, immediately starts thinking about next move. ML analysis completes 30ms later.
+**Expected Behavior**:
+- Move is immediately reflected on board (no blocking)
+- Analysis runs in background (Web Worker / separate thread)
+- Feedback badge appears when ready (if teaching moment detected)
+- Player can click badge when ready, or ignore and continue
+
+**Performance Tests**:
+- Measure inference time across devices (target: <50ms)
+- Test on low-end devices (3-year-old phones/tablets)
+- Verify smooth gameplay (60 FPS maintained)
+
+#### Story 10: Multi-Strategy Move
+**Scenario**: A move could be classified as both "Hidden Single" and "Elimination" (overlapping strategies).
+**Expected Behavior**:
+- Model outputs probability distribution across strategies
+- Selects highest confidence classification
+- If confidence <70%, labels as "Mixed Strategy"
+- Explanation highlights multiple approaches
+
+**Test Cases**:
+- Compare multi-label vs. single-label approach
+- Verify explanation quality for ambiguous moves
+
+### Model Testing Infrastructure
+
+**Automated Tests**:
+- Unit tests for preprocessing functions
+- Integration tests with known game scenarios
+- Regression tests when model is updated
+
+**Test Data Sets**:
+- **Benchmark Set**: 1,000 expert-labeled moves across all strategies
+- **Edge Cases**: 200 ambiguous or challenging moves
+- **Performance Set**: 10,000 moves for speed testing
+
+**Success Criteria**:
+- **Accuracy**: >85% on benchmark set
+- **Latency**: <50ms inference time (p95)
+- **Size**: <5MB model file
+- **Consistency**: >95% same classification for identical board states
+
+**A/B Testing** (Post-Launch):
+- Test model versions with real users
+- Measure engagement and learning outcomes
+- Iterate based on aggregated feedback
 
 ---
 
