@@ -103,10 +103,10 @@ export default function Cell({
         ${getCellBorderClasses()}
         ${getCellBackgroundClass()}
         ${getTextColorClass()}
-        border-gray-400 dark:border-gray-600
+        ${isSelected ? 'border-blue-500 dark:border-blue-400' : 'border-gray-400 dark:border-gray-600'}
         transition-colors duration-150
         ${!isInitial ? 'hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer' : 'cursor-default'}
-        relative
+        relative outline-none
       `}
       onClick={handleClick}
       animate={isError ? { x: [-3, 3, -3, 3, 0] } : {}}

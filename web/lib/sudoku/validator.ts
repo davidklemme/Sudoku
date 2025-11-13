@@ -41,12 +41,12 @@ export function isValidMove(
   }
 
   // Check box for duplicates
-  const boxSize = getBoxSize(gridSize)
-  const boxRow = Math.floor(row / boxSize) * boxSize
-  const boxCol = Math.floor(col / boxSize) * boxSize
+  const boxDims = getBoxDimensions(gridSize)
+  const boxRow = Math.floor(row / boxDims.rows) * boxDims.rows
+  const boxCol = Math.floor(col / boxDims.cols) * boxDims.cols
 
-  for (let r = boxRow; r < boxRow + boxSize; r++) {
-    for (let c = boxCol; c < boxCol + boxSize; c++) {
+  for (let r = boxRow; r < boxRow + boxDims.rows; r++) {
+    for (let c = boxCol; c < boxCol + boxDims.cols; c++) {
       if ((r !== row || c !== col) && grid[r][c] === value) {
         return false
       }

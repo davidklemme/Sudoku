@@ -89,91 +89,98 @@ export default function Play() {
           <div className="w-16" /> {/* Spacer for centering */}
         </div>
 
-        {/* New Game Options */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">
-            New Game
-          </h2>
-
-          <div className="space-y-4">
-            {/* Grid Size */}
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                Grid Size
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleNewGame(4, difficulty)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    gridSize === 4
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  4x4
-                </button>
-                <button
-                  onClick={() => handleNewGame(6, difficulty)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    gridSize === 6
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  6x6
-                </button>
-                <button
-                  onClick={() => handleNewGame(9, difficulty)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    gridSize === 9
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  9x9
-                </button>
-              </div>
-            </div>
-
-            {/* Difficulty */}
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                Difficulty
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {(['beginner', 'easy', 'medium', 'hard', 'expert'] as const).map((diff) => (
-                  <button
-                    key={diff}
-                    onClick={() => handleNewGame(gridSize, diff)}
-                    className={`px-3 py-2 rounded-lg transition-colors capitalize ${
-                      difficulty === diff
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {diff}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Game Area */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Board */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
-            <Board />
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Board - Left Side */}
+          <div className="lg:flex-shrink-0">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
+              <Board />
+            </div>
           </div>
 
-          {/* Controls & Number Pad */}
-          <div className="space-y-4">
+          {/* Controls - Right Side */}
+          <div className="flex-1 space-y-4">
+            {/* New Game Options */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">
+                New Game
+              </h2>
+
+              <div className="space-y-4">
+                {/* Grid Size */}
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                    Grid Size
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleNewGame(4, difficulty)}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        gridSize === 4
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      4x4
+                    </button>
+                    <button
+                      onClick={() => handleNewGame(6, difficulty)}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        gridSize === 6
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      6x6
+                    </button>
+                    <button
+                      onClick={() => handleNewGame(9, difficulty)}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        gridSize === 9
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      9x9
+                    </button>
+                  </div>
+                </div>
+
+                {/* Difficulty */}
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                    Difficulty
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {(['beginner', 'easy', 'medium', 'hard', 'expert'] as const).map((diff) => (
+                      <button
+                        key={diff}
+                        onClick={() => handleNewGame(gridSize, diff)}
+                        className={`px-3 py-2 rounded-lg transition-colors capitalize ${
+                          difficulty === diff
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {diff}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Game Controls */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg">
               <Controls />
             </div>
+
+            {/* Number Pad */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg">
               <NumberPad />
             </div>
+
+            {/* Strategy Stats */}
             <StrategyStats />
           </div>
         </div>

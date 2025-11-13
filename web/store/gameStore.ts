@@ -5,7 +5,7 @@
 import { create } from 'zustand'
 import type { SudokuGrid, GridSize, Difficulty, Move } from '@/lib/sudoku/types'
 import { generatePuzzle } from '@/lib/sudoku/generator'
-import { isValidMove, cloneGrid } from '@/lib/sudoku/validator'
+import { isValidMove, cloneGrid, getBoxDimensions } from '@/lib/sudoku/validator'
 import { detectStrategy, type Strategy, type StrategyResult } from '@/lib/sudoku/strategies'
 import { extractFeatures } from '@/lib/ml/features'
 import { mockPredict } from '@/lib/ml/mock'
@@ -142,13 +142,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     // Same box
-    const boxSize = gridSize === 4 ? 2 : gridSize === 6 ? 2 : 3
-    const boxColSize = gridSize === 6 ? 3 : boxSize
-    const boxRow = Math.floor(row / boxSize) * boxSize
-    const boxCol = Math.floor(col / boxColSize) * boxColSize
+    const boxDims = getBoxDimensions(gridSize)
+    const boxRow = Math.floor(row / boxDims.rows) * boxDims.rows
+    const boxCol = Math.floor(col / boxDims.cols) * boxDims.cols
 
-    for (let r = boxRow; r < boxRow + boxSize; r++) {
-      for (let c = boxCol; c < boxCol + boxColSize; c++) {
+    for (let r = boxRow; r < boxRow + boxDims.rows; r++) {
+      for (let c = boxCol; c < boxCol + boxDims.cols; c++) {
         highlighted.add(cellKey(r, c))
       }
     }
