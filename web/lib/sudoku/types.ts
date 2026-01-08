@@ -17,6 +17,10 @@ export interface Puzzle {
   difficulty: Difficulty
   gridSize: GridSize
   createdAt: Date
+  /** The actual difficulty based on required solving strategies */
+  actualDifficulty?: Difficulty
+  /** Strategies required to solve this puzzle */
+  strategiesRequired?: string[]
 }
 
 export interface Cell {

@@ -7,7 +7,7 @@ import type { GridSize, Difficulty } from '@/lib/sudoku/types'
 
 describe('GameStore', () => {
   beforeEach(() => {
-    // Reset store before each test
+    // Reset store before each test with all required properties
     useGameStore.setState({
       puzzleId: null,
       initialGrid: null,
@@ -27,6 +27,20 @@ describe('GameStore', () => {
       isPencilMode: false,
       highlightedCells: new Set(),
       errorCells: new Set(),
+      // Highlight preferences - enable all for tests
+      showRowHighlight: true,
+      showColumnHighlight: true,
+      showBoxHighlight: true,
+      showErrorFeedback: true,
+      autoCleanPencilMarks: true,
+      // Teaching state
+      lastStrategy: null,
+      showFeedback: false,
+      strategiesUsed: new Map(),
+      // Hint state
+      hintCell: null,
+      hintStrategy: null,
+      showHint: false,
     })
 
     // Start a fresh game
@@ -94,14 +108,16 @@ describe('GameStore', () => {
 
   describe('selectCell', () => {
     it('should select a valid empty cell', () => {
-      const store = useGameStore.getState()
+      // Get fresh reference after startNewGame
+      const initialStore = useGameStore.getState()
+      expect(initialStore.currentGrid).not.toBeNull()
 
       // Find an empty cell
       let emptyRow = -1
       let emptyCol = -1
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 4; c++) {
-          if (store.currentGrid![r][c] === null) {
+      for (let r = 0; r < initialStore.gridSize; r++) {
+        for (let c = 0; c < initialStore.gridSize; c++) {
+          if (initialStore.currentGrid![r][c] === null) {
             emptyRow = r
             emptyCol = c
             break
@@ -110,8 +126,15 @@ describe('GameStore', () => {
         if (emptyRow >= 0) break
       }
 
-      store.selectCell(emptyRow, emptyCol)
-      expect(store.selectedCell).toEqual({ row: emptyRow, col: emptyCol })
+      // Make sure we found an empty cell
+      expect(emptyRow).toBeGreaterThanOrEqual(0)
+
+      // Select the cell
+      initialStore.selectCell(emptyRow, emptyCol)
+
+      // Get updated state
+      const updatedStore = useGameStore.getState()
+      expect(updatedStore.selectedCell).toEqual({ row: emptyRow, col: emptyCol })
     })
 
     it('should not select cells outside grid bounds', () => {
@@ -124,7 +147,7 @@ describe('GameStore', () => {
       expect(store.selectedCell).toBeNull()
     })
 
-    it('should not select initial (pre-filled) cells', () => {
+    it('should allow selecting initial (pre-filled) cells for navigation', () => {
       const store = useGameStore.getState()
 
       // Find a pre-filled cell
@@ -142,9 +165,9 @@ describe('GameStore', () => {
       }
 
       if (filledRow >= 0) {
-        const before = store.selectedCell
         store.selectCell(filledRow, filledCol)
-        expect(store.selectedCell).toEqual(before)
+        // Should allow selecting initial cells (for navigation)
+        expect(store.selectedCell).toEqual({ row: filledRow, col: filledCol })
       } else {
         // If no filled cells found, skip this test
         expect(true).toBe(true)
@@ -170,12 +193,14 @@ describe('GameStore', () => {
   describe('makeMove', () => {
     it('should make a valid move', () => {
       const store = useGameStore.getState()
+      expect(store.currentGrid).not.toBeNull()
+      expect(store.solution).not.toBeNull()
 
       // Find empty cell
       let emptyRow = -1
       let emptyCol = -1
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < store.gridSize; r++) {
+        for (let c = 0; c < store.gridSize; c++) {
           if (store.currentGrid![r][c] === null) {
             emptyRow = r
             emptyCol = c
@@ -185,17 +210,27 @@ describe('GameStore', () => {
         if (emptyRow >= 0) break
       }
 
+      expect(emptyRow).toBeGreaterThanOrEqual(0)
+
+      // Select the cell
       store.selectCell(emptyRow, emptyCol)
 
+      // Verify selection worked
+      const afterSelect = useGameStore.getState()
+      expect(afterSelect.selectedCell).toEqual({ row: emptyRow, col: emptyCol })
+
       // Find a valid value for this cell
-      const solution = store.solution!
-      const correctValue = solution[emptyRow][emptyCol]!
+      const correctValue = store.solution![emptyRow][emptyCol]!
+      expect(correctValue).toBeGreaterThan(0)
 
-      store.makeMove(correctValue)
+      // Make the move
+      afterSelect.makeMove(correctValue)
 
-      expect(store.currentGrid![emptyRow][emptyCol]).toBe(correctValue)
-      expect(store.moveHistory.length).toBe(1)
-      expect(store.historyIndex).toBe(0)
+      // Check the result
+      const afterMove = useGameStore.getState()
+      expect(afterMove.currentGrid![emptyRow][emptyCol]).toBe(correctValue)
+      expect(afterMove.moveHistory.length).toBe(1)
+      expect(afterMove.historyIndex).toBe(0)
     })
 
     it('should not make a move without selected cell', () => {
@@ -233,20 +268,27 @@ describe('GameStore', () => {
 
       store.selectCell(emptyRow, emptyCol)
 
+      // Get fresh state after selection
+      const afterSelect = useGameStore.getState()
+      expect(afterSelect.selectedCell).toEqual({ row: emptyRow, col: emptyCol })
+
       // Try placing a value that's already in the row
       let duplicateValue: number | null = null
-      for (let c = 0; c < 4; c++) {
-        if (c !== emptyCol && store.currentGrid![emptyRow][c] !== null) {
-          duplicateValue = store.currentGrid![emptyRow][c]
+      for (let c = 0; c < afterSelect.gridSize; c++) {
+        if (c !== emptyCol && afterSelect.currentGrid![emptyRow][c] !== null) {
+          duplicateValue = afterSelect.currentGrid![emptyRow][c]
           break
         }
       }
 
       if (duplicateValue) {
-        const mistakesBefore = store.mistakes
-        store.makeMove(duplicateValue)
-        expect(store.mistakes).toBe(mistakesBefore + 1)
-        expect(store.currentGrid![emptyRow][emptyCol]).toBeNull()
+        const mistakesBefore = afterSelect.mistakes
+        afterSelect.makeMove(duplicateValue)
+
+        // Get fresh state after move
+        const afterMove = useGameStore.getState()
+        expect(afterMove.mistakes).toBe(mistakesBefore + 1)
+        expect(afterMove.currentGrid![emptyRow][emptyCol]).toBeNull()
       } else {
         // No duplicate found in row, skip
         expect(true).toBe(true)

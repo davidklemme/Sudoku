@@ -4,7 +4,15 @@
   "description": "RnS SuDoCoach - A visual-learning Sudoku app for kids that teaches through color-coded hints. Built for Ruben and Sammy.",
   "author": "David Klemme",
   "license": "MIT",
-  "keywords": ["sudoku", "kids", "learning", "teaching", "puzzle", "nextjs", "react"],
+  "keywords": [
+    "sudoku",
+    "kids",
+    "learning",
+    "teaching",
+    "puzzle",
+    "nextjs",
+    "react"
+  ],
   "homepage": "https://rns-sudocoach.vercel.app",
   "repository": {
     "type": "git",
@@ -34,7 +42,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.562.0",
-    "next": "^16.0.1",
+    "next": "^16.1.1",
     "postcss": "^8.5.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -50,7 +58,7 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "eslint": "^9.39.1",
-    "eslint-config-next": "^16.0.1",
+    "eslint-config-next": "^16.1.1",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0"
   }

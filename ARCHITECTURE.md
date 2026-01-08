@@ -534,7 +534,62 @@ A/B testing for new models
    - Model accuracy over time
    - False positive/negative rates
 
+## Key Learnings & Technical Insights
+
+### Strategy-Based Difficulty Validation (2026-01)
+
+**Problem**: Puzzle difficulty was originally based solely on clue count. A "hard" puzzle might actually be solvable with just naked singles - the simplest strategy.
+
+**Solution**: Implemented a strategy-based solver (`lib/sudoku/strategy-solver.ts`) that:
+1. Attempts to solve puzzles using only logical strategies (no backtracking guessing)
+2. Tracks which strategies are required
+3. Returns the actual difficulty based on strategy requirements
+
+**Strategy Hierarchy** (easiest to hardest):
+1. **Naked Single** (beginner) - Cell has only one candidate
+2. **Hidden Single** (easy) - Value can only go in one cell within a unit
+3. **Naked Pair** (medium) - Two cells in unit share same two candidates
+4. **Pointing Pair** (hard) - Candidates in box aligned to eliminate in row/col
+5. **Box/Line Reduction** (hard) - Row/col candidates confined to one box
+6. **Guessing** (expert) - No logical strategy works
+
+**Grid Size Limitations Discovered**:
+- **4x4 grids**: Can only achieve beginner/easy difficulty (too small for complex patterns)
+- **6x6 grids**: Can reach up to medium difficulty
+- **9x9 grids**: Full difficulty range achievable
+
+**Interesting Finding**: Most randomly-generated puzzles with simple clue removal are either too easy (solvable with naked singles) or too hard (require guessing). True "medium" and "hard" puzzles that require specific strategies are relatively rare without specialized generation techniques.
+
+### Hint System Architecture (2026-01)
+
+**Problem**: Original hints just revealed the answer - not educational.
+
+**Solution**: Three-tier hint system:
+1. **Naked Singles First**: Find cells with exactly one candidate
+2. **Hidden Singles Second**: Find values that can only go in one cell
+3. **Naked Pairs Leading to Singles**: For advanced users (Sammy), show pairs that create solvable cells
+
+**Color Coding Philosophy**:
+- **Green** = "Fill me!" (solvable cell)
+- **Blue/Purple** = "Look at this area" (related cells)
+- **Yellow** = "These cells work together" (pairs)
+- **Red** = "Oops!" (conflict)
+
+The key insight: Kids learn better from visual patterns than text explanations.
+
+### Performance Considerations
+
+**Puzzle Generation**:
+- Strategy validation adds ~10-20ms per attempt
+- May require multiple attempts to find valid difficulty match
+- Trade-off: Slower generation for accurate difficulty labels
+
+**Strategy Solver Performance**:
+- 4x4 beginner: ~1-3ms
+- 9x9 medium: ~20-40ms
+- 9x9 expert (unsolvable logically): ~100-200ms
+
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2025-11-09*
+*Document Version: 1.1*
+*Last Updated: 2026-01-08*

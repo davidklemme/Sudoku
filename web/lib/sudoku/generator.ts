@@ -1,11 +1,15 @@
 /**
  * Sudoku puzzle generator
  * Generates puzzles with unique solutions at various difficulty levels
+ *
+ * Now uses strategy-based validation to ensure puzzles actually
+ * require the appropriate solving techniques for each difficulty level.
  */
 
 import type { SudokuGrid, GridSize, Difficulty, Puzzle } from './types'
 import { createEmptyGrid, cloneGrid, isValidMove } from './validator'
 import { solve, hasUniqueSolution } from './solver'
+import { validateDifficulty, analyzeDifficulty } from './strategy-solver'
 
 /**
  * Generate a complete solved Sudoku grid
@@ -33,34 +37,70 @@ export function generateSolvedGrid(size: GridSize, seed?: number): SudokuGrid {
 
 /**
  * Generate a Sudoku puzzle at specified difficulty
+ * Now validates that the puzzle actually requires the expected strategies
  */
 export function generatePuzzle(
   size: GridSize,
   difficulty: Difficulty,
-  seed?: number
+  seed?: number,
+  maxRetries: number = 10
 ): Puzzle {
-  const solution = generateSolvedGrid(size, seed)
-  const grid = cloneGrid(solution)
+  const currentSeed = seed ?? Date.now()
 
-  const clues = getCluesForDifficulty(size, difficulty)
-  const totalCells = size * size
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const attemptSeed = currentSeed + attempt
+    const solution = generateSolvedGrid(size, attemptSeed)
+    const grid = cloneGrid(solution)
 
-  // Remove numbers while maintaining unique solution
-  removeNumbers(grid, totalCells - clues, seed)
+    const clues = getCluesForDifficulty(size, difficulty)
+    const totalCells = size * size
 
-  // Ensure we have a unique solution
-  if (!hasUniqueSolution(grid)) {
-    // Retry with different seed
-    return generatePuzzle(size, difficulty, seed ? seed + 1 : Date.now())
+    // Remove numbers while maintaining unique solution
+    removeNumbers(grid, totalCells - clues, attemptSeed)
+
+    // Ensure we have a unique solution
+    if (!hasUniqueSolution(grid)) {
+      continue // Try next seed
+    }
+
+    // Validate the puzzle matches the expected difficulty
+    const validation = validateDifficulty(grid, difficulty)
+
+    if (validation.valid) {
+      return {
+        id: generatePuzzleId(size, difficulty, attemptSeed),
+        grid,
+        solution,
+        difficulty,
+        gridSize: size,
+        createdAt: new Date(),
+        actualDifficulty: validation.actualDifficulty,
+        strategiesRequired: validation.strategiesUsed,
+      }
+    }
+
+    // If puzzle is too easy for higher difficulties, try removing more clues
+    // If puzzle is too hard, try with different seed
   }
 
+  // Fallback: return best effort puzzle after max retries
+  // This ensures we always return something playable
+  const fallbackSolution = generateSolvedGrid(size, currentSeed)
+  const fallbackGrid = cloneGrid(fallbackSolution)
+  const clues = getCluesForDifficulty(size, difficulty)
+  removeNumbers(fallbackGrid, size * size - clues, currentSeed)
+
+  const actualDiff = analyzeDifficulty(fallbackGrid)
+
   return {
-    id: generatePuzzleId(size, difficulty, seed),
-    grid,
-    solution,
+    id: generatePuzzleId(size, difficulty, currentSeed),
+    grid: fallbackGrid,
+    solution: fallbackSolution,
     difficulty,
     gridSize: size,
     createdAt: new Date(),
+    actualDifficulty: actualDiff,
+    strategiesRequired: [],
   }
 }
 

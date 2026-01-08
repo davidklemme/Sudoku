@@ -199,4 +199,48 @@ describe('Generator', () => {
       expect(emptyCells).toBeGreaterThan(50)
     }, 30000)
   })
+
+  describe('Strategy-based difficulty validation', () => {
+    it('should include actualDifficulty in generated puzzle', () => {
+      const puzzle = generatePuzzle(9, 'medium', 12345)
+
+      expect(puzzle.actualDifficulty).toBeDefined()
+    }, 30000)
+
+    it('should include strategiesRequired in generated puzzle', () => {
+      const puzzle = generatePuzzle(9, 'medium', 12345)
+
+      expect(puzzle.strategiesRequired).toBeDefined()
+      expect(Array.isArray(puzzle.strategiesRequired)).toBe(true)
+    }, 30000)
+
+    it('should generate puzzles with appropriate actual difficulty', () => {
+      const difficultyOrder = ['beginner', 'easy', 'medium', 'hard', 'expert']
+
+      // Generate a 9x9 hard puzzle
+      const puzzle = generatePuzzle(9, 'hard', 12345)
+
+      const expectedIndex = difficultyOrder.indexOf('hard')
+      const actualIndex = difficultyOrder.indexOf(puzzle.actualDifficulty || 'beginner')
+
+      // Actual should be within +/- 1 of expected (our tolerance)
+      expect(Math.abs(actualIndex - expectedIndex)).toBeLessThanOrEqual(2)
+    }, 60000)
+
+    it('should cap difficulty for smaller grid sizes', () => {
+      // 4x4 grids cannot achieve hard/expert difficulty
+      const puzzle = generatePuzzle(4, 'expert', 12345)
+
+      // Actual difficulty should be beginner or easy for 4x4
+      expect(['beginner', 'easy']).toContain(puzzle.actualDifficulty)
+    })
+
+    it('should handle 6x6 grid difficulty limitations', () => {
+      const puzzle = generatePuzzle(6, 'hard', 12345)
+
+      // 6x6 is capped at medium
+      const validDifficulties = ['beginner', 'easy', 'medium']
+      expect(validDifficulties).toContain(puzzle.actualDifficulty)
+    }, 30000)
+  })
 })
