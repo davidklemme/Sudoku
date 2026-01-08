@@ -187,244 +187,106 @@ export default function Play() {
           </div>
         </div>
 
-        {/* Layout: Responsive - vertical on mobile, horizontal on desktop */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
-          {/* Left side: Board only on desktop */}
-          <div className="flex-1 flex items-center justify-center min-w-0">
+        {/* DESKTOP LAYOUT: Grid 80% left, Controls 20% right */}
+        <div className="hidden md:flex flex-1 gap-4 min-h-0 overflow-hidden">
+          {/* Left: Board (80%) */}
+          <div className="flex-[4] flex items-center justify-center min-w-0">
             <div className="w-full h-full max-w-[600px] max-h-[600px] aspect-square">
               <Board />
             </div>
           </div>
 
-          {/* Right side: All controls on desktop - narrower width */}
-          <div className="w-full lg:w-56 flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-            {/* Stats - Compact */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-center shadow">
-                <div className="text-lg">⏱️</div>
-                <div className="text-xs text-gray-500">Time</div>
-                <div className="text-sm font-bold">{elapsedTime}</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-center shadow">
-                <div className="text-lg">💡</div>
-                <div className="text-xs text-gray-500">Hints</div>
-                <div className="text-sm font-bold">{hintsUsed}</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-center shadow">
-                <div className="text-lg">❌</div>
-                <div className="text-xs text-gray-500">Errors</div>
-                <div className="text-sm font-bold">{mistakes}</div>
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-lg">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginBottom: '6px' }}>
-                <button
-                  onClick={undo}
-                  disabled={historyIndex < 0}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    backgroundColor: historyIndex < 0 ? '#d1d5db' : '#a855f7',
-                    color: 'white',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    transition: 'all 0.15s',
-                    border: 'none',
-                    cursor: historyIndex < 0 ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  ⏪ Undo
-                </button>
-                <button
-                  onClick={redo}
-                  disabled={historyIndex >= moveHistory.length - 1}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    backgroundColor: historyIndex >= moveHistory.length - 1 ? '#d1d5db' : '#a855f7',
-                    color: 'white',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    transition: 'all 0.15s',
-                    border: 'none',
-                    cursor: historyIndex >= moveHistory.length - 1 ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  ⏩ Redo
-                </button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '6px' }}>
-                <button
-                  onClick={clearCell}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    transition: 'all 0.15s',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  🗑️ Erase
-                </button>
-                <button
-                  onClick={togglePencilMode}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    backgroundColor: isPencilMode ? '#f97316' : '#e5e7eb',
-                    color: isPencilMode ? 'white' : '#111827',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    transition: 'all 0.15s',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ✏️ Notes
-                </button>
-                <button
-                  onClick={useHint}
-                  disabled={isComplete}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    backgroundColor: isComplete ? '#d1d5db' : '#eab308',
-                    color: 'white',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    transition: 'all 0.15s',
-                    border: 'none',
-                    cursor: isComplete ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  💡 Hint
-                </button>
-              </div>
-              <button
-                onClick={resetGame}
-                style={{
-                  width: '100%',
-                  padding: '6px 8px',
-                  borderRadius: '6px',
-                  backgroundColor: '#e5e7eb',
-                  color: '#111827',
-                  fontWeight: '500',
-                  fontSize: '12px',
-                  transition: 'all 0.15s',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                🔄 Reset
-              </button>
-            </div>
-
-            {/* Helper Lights */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-lg">
-              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}>✨ Helper Lights</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                <button
-                  onClick={toggleRowHighlight}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    transition: 'all 0.15s',
-                    backgroundColor: showRowHighlight ? '#3b82f6' : '#e5e7eb',
-                    color: showRowHighlight ? 'white' : '#111827',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ↔️ Row
-                </button>
-                <button
-                  onClick={toggleColumnHighlight}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    transition: 'all 0.15s',
-                    backgroundColor: showColumnHighlight ? '#3b82f6' : '#e5e7eb',
-                    color: showColumnHighlight ? 'white' : '#111827',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ↕️ Col
-                </button>
-                <button
-                  onClick={toggleBoxHighlight}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    transition: 'all 0.15s',
-                    backgroundColor: showBoxHighlight ? '#3b82f6' : '#e5e7eb',
-                    color: showBoxHighlight ? 'white' : '#111827',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ⬜ Box
-                </button>
-              </div>
-            </div>
-
-            {/* Fun Settings */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-lg">
-              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}>🎨 Settings</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <button
-                  onClick={toggleErrorFeedback}
-                  style={{
-                    width: '100%',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    transition: 'all 0.15s',
-                    backgroundColor: showErrorFeedback ? '#ef4444' : '#e5e7eb',
-                    color: showErrorFeedback ? 'white' : '#111827',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {showErrorFeedback ? '🔴 Error Flash: ON' : '🔴 Error Flash: OFF'}
-                </button>
-                <button
-                  onClick={toggleAutoCleanPencilMarks}
-                  style={{
-                    width: '100%',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    transition: 'all 0.15s',
-                    backgroundColor: autoCleanPencilMarks ? '#3b82f6' : '#e5e7eb',
-                    color: autoCleanPencilMarks ? 'white' : '#111827',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {autoCleanPencilMarks ? '🧹 Auto-Clean: ON' : '🧹 Auto-Clean: OFF'}
-                </button>
-              </div>
+          {/* Right: NumPad + Options (20%) */}
+          <div className="flex-1 flex flex-col gap-2 min-w-[180px] max-w-[200px] overflow-y-auto">
+            {/* Stats Row */}
+            <div className="flex justify-between text-center text-xs bg-white dark:bg-gray-800 rounded-lg p-2 shadow">
+              <div><span className="text-sm">⏱️</span> {elapsedTime}</div>
+              <div><span className="text-sm">💡</span> {hintsUsed}</div>
+              <div><span className="text-sm">❌</span> {mistakes}</div>
             </div>
 
             {/* Number Pad */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-lg">
-              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}>🔢 Numbers</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow">
               <NumberPad />
+            </div>
+
+            {/* Controls - under numpad */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow space-y-1">
+              <div className="grid grid-cols-3 gap-1">
+                <button onClick={clearCell} className="p-1 text-xs rounded bg-red-500 text-white">🗑️</button>
+                <button onClick={togglePencilMode} className={`p-1 text-xs rounded ${isPencilMode ? 'bg-orange-500 text-white' : 'bg-gray-200'}`}>✏️</button>
+                <button onClick={useHint} disabled={isComplete} className="p-1 text-xs rounded bg-yellow-500 text-white disabled:bg-gray-300">💡</button>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <button onClick={undo} disabled={historyIndex < 0} className="p-1 text-xs rounded bg-purple-500 text-white disabled:bg-gray-300">⏪</button>
+                <button onClick={redo} disabled={historyIndex >= moveHistory.length - 1} className="p-1 text-xs rounded bg-purple-500 text-white disabled:bg-gray-300">⏩</button>
+              </div>
+              <button onClick={resetGame} className="w-full p-1 text-xs rounded bg-gray-200">🔄 Reset</button>
+            </div>
+
+            {/* Helper Lights */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow">
+              <div className="text-xs font-bold mb-1">Highlights</div>
+              <div className="grid grid-cols-3 gap-1">
+                <button onClick={toggleRowHighlight} className={`p-1 text-xs rounded ${showRowHighlight ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Row</button>
+                <button onClick={toggleColumnHighlight} className={`p-1 text-xs rounded ${showColumnHighlight ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Col</button>
+                <button onClick={toggleBoxHighlight} className={`p-1 text-xs rounded ${showBoxHighlight ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Box</button>
+              </div>
+            </div>
+
+            {/* Settings */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow space-y-1">
+              <button onClick={toggleErrorFeedback} className={`w-full p-1 text-xs rounded ${showErrorFeedback ? 'bg-red-500 text-white' : 'bg-gray-200'}`}>
+                Errors {showErrorFeedback ? 'ON' : 'OFF'}
+              </button>
+              <button onClick={toggleAutoCleanPencilMarks} className={`w-full p-1 text-xs rounded ${autoCleanPencilMarks ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+                Auto-Clean {autoCleanPencilMarks ? 'ON' : 'OFF'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* MOBILE LAYOUT: Vertical stack */}
+        <div className="flex md:hidden flex-col flex-1 gap-3 overflow-y-auto">
+          {/* Stats Row */}
+          <div className="flex justify-around text-center text-sm bg-white dark:bg-gray-800 rounded-lg p-2 shadow">
+            <div><span>⏱️</span> {elapsedTime}</div>
+            <div><span>💡</span> {hintsUsed}</div>
+            <div><span>❌</span> {mistakes}</div>
+          </div>
+
+          {/* Board */}
+          <div className="flex-1 flex items-center justify-center min-h-[250px]">
+            <div className="w-full max-w-[400px] aspect-square">
+              <Board />
+            </div>
+          </div>
+
+          {/* Number Pad */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow">
+            <NumberPad />
+          </div>
+
+          {/* Controls Row */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow">
+            <div className="grid grid-cols-6 gap-2">
+              <button onClick={clearCell} className="p-2 text-lg rounded bg-red-500 text-white">🗑️</button>
+              <button onClick={togglePencilMode} className={`p-2 text-lg rounded ${isPencilMode ? 'bg-orange-500 text-white' : 'bg-gray-200'}`}>✏️</button>
+              <button onClick={useHint} disabled={isComplete} className="p-2 text-lg rounded bg-yellow-500 text-white disabled:bg-gray-300">💡</button>
+              <button onClick={undo} disabled={historyIndex < 0} className="p-2 text-lg rounded bg-purple-500 text-white disabled:bg-gray-300">⏪</button>
+              <button onClick={redo} disabled={historyIndex >= moveHistory.length - 1} className="p-2 text-lg rounded bg-purple-500 text-white disabled:bg-gray-300">⏩</button>
+              <button onClick={resetGame} className="p-2 text-lg rounded bg-gray-200">🔄</button>
+            </div>
+          </div>
+
+          {/* Highlight toggles - collapsed row */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow">
+            <div className="grid grid-cols-5 gap-2 text-xs">
+              <button onClick={toggleRowHighlight} className={`p-1 rounded ${showRowHighlight ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Row</button>
+              <button onClick={toggleColumnHighlight} className={`p-1 rounded ${showColumnHighlight ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Col</button>
+              <button onClick={toggleBoxHighlight} className={`p-1 rounded ${showBoxHighlight ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Box</button>
+              <button onClick={toggleErrorFeedback} className={`p-1 rounded ${showErrorFeedback ? 'bg-red-400 text-white' : 'bg-gray-200'}`}>Err</button>
+              <button onClick={toggleAutoCleanPencilMarks} className={`p-1 rounded ${autoCleanPencilMarks ? 'bg-blue-400 text-white' : 'bg-gray-200'}`}>Auto</button>
             </div>
           </div>
         </div>

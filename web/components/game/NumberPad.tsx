@@ -37,15 +37,13 @@ export default function NumberPad() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: gridSize === 4 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-          gap: '12px',
+          gap: '6px',
           width: '100%',
-          maxWidth: '400px',
-          margin: '0 auto',
         }}
       >
         {Array.from({ length: gridSize }, (_, i) => i + 1).map((num) => (
@@ -59,15 +57,15 @@ export default function NumberPad() {
             style={{
               aspectRatio: '1',
               width: '100%',
-              borderRadius: '12px',
+              borderRadius: '8px',
               background: getButtonGradient(num),
               color: 'white',
               fontWeight: 'bold',
-              fontSize: '28px',
+              fontSize: '20px',
               transition: 'all 0.15s',
-              boxShadow: hoveredButton === num ? '0 10px 15px -3px rgba(0, 0, 0, 0.2)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+              boxShadow: hoveredButton === num ? '0 6px 10px -3px rgba(0, 0, 0, 0.2)' : '0 2px 4px -1px rgba(0, 0, 0, 0.1)',
               border: 'none',
-              borderBottom: isPencilMode ? '3px solid #ea580c' : '3px solid rgba(0, 0, 0, 0.2)',
+              borderBottom: isPencilMode ? '2px solid #ea580c' : '2px solid rgba(0, 0, 0, 0.2)',
               cursor: 'pointer',
             }}
           >
@@ -81,15 +79,15 @@ export default function NumberPad() {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           style={{
-            fontSize: '12px',
+            fontSize: '10px',
             color: '#ea580c',
             fontWeight: 'bold',
             backgroundColor: '#fed7aa',
-            padding: '2px 8px',
+            padding: '2px 6px',
             borderRadius: '9999px',
           }}
         >
-          ✏️ Making Notes!
+          ✏️ Notes Mode
         </motion.div>
       )}
     </div>
