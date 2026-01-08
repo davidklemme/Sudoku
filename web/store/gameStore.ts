@@ -83,6 +83,89 @@ export interface GameState {
 
 const cellKey = (row: number, col: number): string => `${row},${col}`
 
+// Helper functions for hint cell highlighting
+function getRelatedCellsForHint(
+  gridSize: number,
+  row: number,
+  col: number
+): Array<{ row: number; col: number }> {
+  const cells: Array<{ row: number; col: number }> = []
+
+  // Row cells
+  for (let c = 0; c < gridSize; c++) {
+    if (c !== col) cells.push({ row, col: c })
+  }
+
+  // Column cells
+  for (let r = 0; r < gridSize; r++) {
+    if (r !== row) cells.push({ row: r, col })
+  }
+
+  // Box cells
+  const boxHeight = gridSize === 6 ? 2 : gridSize === 4 ? 2 : 3
+  const boxWidth = gridSize === 6 ? 3 : gridSize === 4 ? 2 : 3
+  const boxStartRow = Math.floor(row / boxHeight) * boxHeight
+  const boxStartCol = Math.floor(col / boxWidth) * boxWidth
+
+  for (let r = boxStartRow; r < boxStartRow + boxHeight; r++) {
+    for (let c = boxStartCol; c < boxStartCol + boxWidth; c++) {
+      if (r !== row || c !== col) {
+        // Avoid duplicates (cells already in row/col)
+        if (r !== row && c !== col) {
+          cells.push({ row: r, col: c })
+        }
+      }
+    }
+  }
+
+  return cells
+}
+
+function getRowCellsForHint(
+  gridSize: number,
+  row: number,
+  col: number
+): Array<{ row: number; col: number }> {
+  const cells: Array<{ row: number; col: number }> = []
+  for (let c = 0; c < gridSize; c++) {
+    if (c !== col) cells.push({ row, col: c })
+  }
+  return cells
+}
+
+function getColCellsForHint(
+  gridSize: number,
+  row: number,
+  col: number
+): Array<{ row: number; col: number }> {
+  const cells: Array<{ row: number; col: number }> = []
+  for (let r = 0; r < gridSize; r++) {
+    if (r !== row) cells.push({ row: r, col })
+  }
+  return cells
+}
+
+function getBoxCellsForHint(
+  gridSize: number,
+  row: number,
+  col: number
+): Array<{ row: number; col: number }> {
+  const cells: Array<{ row: number; col: number }> = []
+  const boxHeight = gridSize === 6 ? 2 : gridSize === 4 ? 2 : 3
+  const boxWidth = gridSize === 6 ? 3 : gridSize === 4 ? 2 : 3
+  const boxStartRow = Math.floor(row / boxHeight) * boxHeight
+  const boxStartCol = Math.floor(col / boxWidth) * boxWidth
+
+  for (let r = boxStartRow; r < boxStartRow + boxHeight; r++) {
+    for (let c = boxStartCol; c < boxStartCol + boxWidth; c++) {
+      if (r !== row || c !== col) {
+        cells.push({ row: r, col: c })
+      }
+    }
+  }
+  return cells
+}
+
 export const useGameStore = create<GameState>((set, get) => ({
   // Initial state
   puzzleId: null,
@@ -310,11 +393,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     // Update state immediately for responsive UI
+    // Also dismiss any active hint when a move is made
     set({
       currentGrid: newGrid,
       moveHistory: newHistory,
       historyIndex: newHistory.length - 1,
       pencilMarks: newPencilMarks,
+      // Clear hints on move
+      hintCell: null,
+      hintStrategy: null,
+      showHint: false,
+      highlightedCells: new Set(),
     })
 
     // Check if puzzle is complete
@@ -535,74 +624,268 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ pencilMarks: newPencilMarks })
   },
 
-  // Use a hint - show strategy for selected cell or find best next move
+  // Use a hint - find a truly solvable cell (naked single or hidden single only)
   useHint: () => {
-    const { solution, currentGrid, gridSize, selectedCell } = get()
+    const { solution, currentGrid, gridSize } = get()
 
     if (!solution || !currentGrid) {
       return
     }
 
     let targetCell: { row: number; col: number; value: number } | null = null
+    let strategy: StrategyResult | null = null
 
-    // If a cell is selected and empty, use that cell
-    if (selectedCell && currentGrid[selectedCell.row][selectedCell.col] === null) {
-      const correctValue = solution[selectedCell.row][selectedCell.col]
-      if (correctValue !== null) {
-        targetCell = {
-          row: selectedCell.row,
-          col: selectedCell.col,
-          value: correctValue,
+    // STEP 1: Look for naked singles (cells with exactly 1 candidate)
+    for (let row = 0; row < gridSize && !targetCell; row++) {
+      for (let col = 0; col < gridSize; col++) {
+        if (currentGrid[row][col] !== null) continue
+
+        const candidates = getCandidates(currentGrid, row, col)
+        if (candidates.length === 1) {
+          const value = candidates[0]
+          targetCell = { row, col, value }
+          strategy = {
+            strategy: 'single_candidate',
+            confidence: 1.0,
+            explanation: `This cell can only be ${value}. All other numbers are already used in its row, column, or box.`,
+            affectedCells: getRelatedCellsForHint(gridSize, row, col),
+          }
+          break
         }
       }
     }
 
-    // Otherwise, find the best next move (cell with fewest candidates)
+    // STEP 2: If no naked singles, look for hidden singles
     if (!targetCell) {
-      let bestCell: { row: number; col: number; value: number; candidatesCount: number } | null = null
-
-      for (let row = 0; row < gridSize; row++) {
+      // Check each empty cell for hidden singles
+      for (let row = 0; row < gridSize && !targetCell; row++) {
         for (let col = 0; col < gridSize; col++) {
-          // Skip filled cells
           if (currentGrid[row][col] !== null) continue
 
           const candidates = getCandidates(currentGrid, row, col)
 
-          // If we haven't found a cell yet, or this cell has fewer candidates
-          if (bestCell === null || candidates.length < bestCell.candidatesCount) {
-            const correctValue = solution[row][col]
-            if (correctValue !== null) {
-              bestCell = {
-                row,
-                col,
-                value: correctValue,
-                candidatesCount: candidates.length,
+          for (const value of candidates) {
+            // Check if this value can only go in this cell within its row
+            let uniqueInRow = true
+            for (let c = 0; c < gridSize; c++) {
+              if (c !== col && currentGrid[row][c] === null) {
+                const otherCandidates = getCandidates(currentGrid, row, c)
+                if (otherCandidates.includes(value)) {
+                  uniqueInRow = false
+                  break
+                }
               }
+            }
+            if (uniqueInRow) {
+              targetCell = { row, col, value }
+              strategy = {
+                strategy: 'hidden_single',
+                confidence: 1.0,
+                explanation: `${value} can only go in this cell within its row.`,
+                affectedCells: getRowCellsForHint(gridSize, row, col),
+              }
+              break
+            }
 
-              // If only one candidate, this is the best we can find
-              if (candidates.length === 1) {
-                break
+            // Check if this value can only go in this cell within its column
+            let uniqueInCol = true
+            for (let r = 0; r < gridSize; r++) {
+              if (r !== row && currentGrid[r][col] === null) {
+                const otherCandidates = getCandidates(currentGrid, r, col)
+                if (otherCandidates.includes(value)) {
+                  uniqueInCol = false
+                  break
+                }
+              }
+            }
+            if (uniqueInCol) {
+              targetCell = { row, col, value }
+              strategy = {
+                strategy: 'hidden_single',
+                confidence: 1.0,
+                explanation: `${value} can only go in this cell within its column.`,
+                affectedCells: getColCellsForHint(gridSize, row, col),
+              }
+              break
+            }
+
+            // Check if this value can only go in this cell within its box
+            const boxHeight = gridSize === 6 ? 2 : gridSize === 4 ? 2 : 3
+            const boxWidth = gridSize === 6 ? 3 : gridSize === 4 ? 2 : 3
+            const boxStartRow = Math.floor(row / boxHeight) * boxHeight
+            const boxStartCol = Math.floor(col / boxWidth) * boxWidth
+
+            let uniqueInBox = true
+            for (let r = boxStartRow; r < boxStartRow + boxHeight && uniqueInBox; r++) {
+              for (let c = boxStartCol; c < boxStartCol + boxWidth; c++) {
+                if ((r !== row || c !== col) && currentGrid[r][c] === null) {
+                  const otherCandidates = getCandidates(currentGrid, r, c)
+                  if (otherCandidates.includes(value)) {
+                    uniqueInBox = false
+                    break
+                  }
+                }
+              }
+            }
+            if (uniqueInBox) {
+              targetCell = { row, col, value }
+              strategy = {
+                strategy: 'hidden_single',
+                confidence: 1.0,
+                explanation: `${value} can only go in this cell within its box.`,
+                affectedCells: getBoxCellsForHint(gridSize, row, col),
+              }
+              break
+            }
+          }
+          if (targetCell) break
+        }
+      }
+    }
+
+    // STEP 3: Look for naked pairs that lead to singles (for Sammy!)
+    if (!targetCell) {
+      const boxHeight = gridSize === 6 ? 2 : gridSize === 4 ? 2 : 3
+      const boxWidth = gridSize === 6 ? 3 : gridSize === 4 ? 2 : 3
+
+      // Helper to find naked pairs in a unit and check if they create singles
+      const findPairLeadingToSingle = (
+        unitCells: Array<{ row: number; col: number }>
+      ): {
+        targetCell: { row: number; col: number; value: number }
+        pairCells: Array<{ row: number; col: number }>
+        pairValues: [number, number]
+      } | null => {
+        // Get empty cells with their candidates
+        const emptyCells = unitCells
+          .filter((c) => currentGrid[c.row][c.col] === null)
+          .map((c) => ({
+            ...c,
+            candidates: getCandidates(currentGrid, c.row, c.col),
+          }))
+
+        // Find cells with exactly 2 candidates
+        const pairCandidateCells = emptyCells.filter((c) => c.candidates.length === 2)
+
+        // Look for naked pairs (two cells with same two candidates)
+        for (let i = 0; i < pairCandidateCells.length; i++) {
+          for (let j = i + 1; j < pairCandidateCells.length; j++) {
+            const cell1 = pairCandidateCells[i]
+            const cell2 = pairCandidateCells[j]
+
+            // Check if they have the same candidates
+            if (
+              cell1.candidates[0] === cell2.candidates[0] &&
+              cell1.candidates[1] === cell2.candidates[1]
+            ) {
+              const pairValues: [number, number] = [cell1.candidates[0], cell2.candidates[1]]
+
+              // Check if removing these values from other cells creates a single
+              for (const otherCell of emptyCells) {
+                if (
+                  (otherCell.row === cell1.row && otherCell.col === cell1.col) ||
+                  (otherCell.row === cell2.row && otherCell.col === cell2.col)
+                ) {
+                  continue
+                }
+
+                // Simulate removing pair values
+                const remainingCandidates = otherCell.candidates.filter(
+                  (c) => !pairValues.includes(c)
+                )
+
+                // If only one candidate remains, we found a solvable cell!
+                if (remainingCandidates.length === 1) {
+                  return {
+                    targetCell: {
+                      row: otherCell.row,
+                      col: otherCell.col,
+                      value: remainingCandidates[0],
+                    },
+                    pairCells: [
+                      { row: cell1.row, col: cell1.col },
+                      { row: cell2.row, col: cell2.col },
+                    ],
+                    pairValues,
+                  }
+                }
               }
             }
           }
         }
-        // Early exit if we found a single candidate
-        if (bestCell && bestCell.candidatesCount === 1) break
+        return null
       }
 
-      if (!bestCell) {
-        return
+      // Check rows for pairs
+      for (let row = 0; row < gridSize && !targetCell; row++) {
+        const rowCells = Array.from({ length: gridSize }, (_, col) => ({ row, col }))
+        const result = findPairLeadingToSingle(rowCells)
+        if (result) {
+          targetCell = result.targetCell
+          strategy = {
+            strategy: 'naked_pair',
+            confidence: 1.0,
+            explanation: `The yellow cells can only be ${result.pairValues[0]} or ${result.pairValues[1]}. So the green cell must be ${result.targetCell.value}!`,
+            affectedCells: result.pairCells,
+          }
+        }
       }
 
-      targetCell = {
-        row: bestCell.row,
-        col: bestCell.col,
-        value: bestCell.value,
+      // Check columns for pairs
+      for (let col = 0; col < gridSize && !targetCell; col++) {
+        const colCells = Array.from({ length: gridSize }, (_, row) => ({ row, col }))
+        const result = findPairLeadingToSingle(colCells)
+        if (result) {
+          targetCell = result.targetCell
+          strategy = {
+            strategy: 'naked_pair',
+            confidence: 1.0,
+            explanation: `The yellow cells can only be ${result.pairValues[0]} or ${result.pairValues[1]}. So the green cell must be ${result.targetCell.value}!`,
+            affectedCells: result.pairCells,
+          }
+        }
+      }
+
+      // Check boxes for pairs
+      for (let boxRow = 0; boxRow < gridSize / boxHeight && !targetCell; boxRow++) {
+        for (let boxCol = 0; boxCol < gridSize / boxWidth && !targetCell; boxCol++) {
+          const boxCells: Array<{ row: number; col: number }> = []
+          for (let r = 0; r < boxHeight; r++) {
+            for (let c = 0; c < boxWidth; c++) {
+              boxCells.push({
+                row: boxRow * boxHeight + r,
+                col: boxCol * boxWidth + c,
+              })
+            }
+          }
+          const result = findPairLeadingToSingle(boxCells)
+          if (result) {
+            targetCell = result.targetCell
+            strategy = {
+              strategy: 'naked_pair',
+              confidence: 1.0,
+              explanation: `The yellow cells can only be ${result.pairValues[0]} or ${result.pairValues[1]}. So the green cell must be ${result.targetCell.value}!`,
+              affectedCells: result.pairCells,
+            }
+          }
+        }
       }
     }
 
-    // Detect the strategy for this move
-    const strategy = detectStrategy(currentGrid, targetCell.row, targetCell.col, targetCell.value)
+    // STEP 4: If no solvable cell found, inform user
+    if (!targetCell || !strategy) {
+      // No directly solvable cells - this puzzle needs advanced strategies
+      set({
+        hintCell: null,
+        hintStrategy: {
+          strategy: 'advanced',
+          confidence: 0,
+          explanation: 'This puzzle needs more advanced strategies. Try using pencil marks to track possibilities!',
+        },
+        showHint: true,
+      })
+      return
+    }
 
     // Enable all helper lights to assist with the hint (teaching mode)
     set({
