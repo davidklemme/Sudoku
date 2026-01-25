@@ -110,7 +110,7 @@ export function Header({
             <Button
               variant="outline"
               size="sm"
-              className="text-xs md:text-sm gap-1 bg-white hidden sm:flex"
+              className="text-xs md:text-sm gap-1 bg-white flex"
             >
               {currentDifficulty?.label || 'Easy'}
               <ChevronDown className="h-3 w-3" />

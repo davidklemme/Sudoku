@@ -18,18 +18,18 @@ export default function Home() {
           <h2 className="text-2xl font-bold mb-6 text-gray-700">
             Choose Your Challenge
           </h2>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-green-100 rounded-2xl p-4 border-2 border-green-200">
+          <div className="grid grid-cols-3 gap-1 md:gap-4">
+            <div className="bg-green-100 rounded-2xl p-2 md:p-4 border-2 border-green-200">
               <div className="text-4xl mb-2">🌟</div>
               <div className="font-bold text-lg text-green-700">4×4</div>
               <div className="text-sm text-green-600">Starter</div>
             </div>
-            <div className="bg-yellow-100 rounded-2xl p-4 border-2 border-yellow-200">
+            <div className="bg-yellow-100 rounded-2xl p-2 md:p-4 border-2 border-yellow-200">
               <div className="text-4xl mb-2">⭐</div>
               <div className="font-bold text-lg text-yellow-700">6×6</div>
               <div className="text-sm text-yellow-600">Growing</div>
             </div>
-            <div className="bg-purple-100 rounded-2xl p-4 border-2 border-purple-200">
+            <div className="bg-purple-100 rounded-2xl p-2 md:p-4 border-2 border-purple-200">
               <div className="text-4xl mb-2">🏆</div>
               <div className="font-bold text-lg text-purple-700">9×9</div>
               <div className="text-sm text-purple-600">Champion</div>

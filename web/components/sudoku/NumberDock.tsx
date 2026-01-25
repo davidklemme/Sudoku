@@ -30,7 +30,7 @@ export function NumberDock({
   return (
     <div
       className={cn(
-        'flex flex-wrap justify-center gap-2 p-2 rounded-xl transition-all',
+        'grid grid-flow-col grid-rows-2 md:grid-rows-1 gap-3 m-4 p-4 rounded-xl transition-all',
         isPencilMode && 'ring-2 ring-orange-400 bg-orange-50'
       )}
     >

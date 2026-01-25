@@ -40,7 +40,7 @@ export function GameShell({
         </header>
 
         {/* Main Content - Different layouts per orientation */}
-        <main className="flex-1 flex flex-col landscape:flex-row lg:flex-row gap-2 sm:gap-4 min-h-0 overflow-hidden">
+        <main className="flex-1 flex flex-col landscape:flex-row lg:flex-row gap-2 sm:gap-4 min-h-0 overflow-scroll md:overflow-hidden">
 
           {/* Grid Container */}
           <div className={cn(
